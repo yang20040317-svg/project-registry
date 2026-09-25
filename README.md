@@ -68,6 +68,8 @@ python project-registry/scripts/registry.py quick "登录页" --type UI
 **第 3 步 ｜ 收工：必沉淀**
 `close --summary "..."`，或手工三步：追加会话记录 / 更新受影响注册项 / 刷新上下文包 + 登记开环。
 `close` 会顺手做一次**收工体检**（登记了却没交代的四类），只提示不阻断。
+末尾还会给一段**交接提示**：提醒你开新对话，并附上可直接粘贴的开场白（项目根 + 开工第一读 +
+上次起步点 + 最堵的开环）—— 让「开新对话」不再需要勇气。`--no-tip` 可关掉。
 
 ## 命令速查
 
@@ -79,7 +81,7 @@ python project-registry/scripts/registry.py quick "登录页" --type UI
 | `find` / `list` | 按词、按类型、按状态检索资产 |
 | `check` | 一致性闸门：路径存在、ID 唯一、决策引用有效、开环有归属、依赖状态合法 |
 | `context` | 生成/刷新上下文包（开工第一读） |
-| `close` | 收工沉淀 + 收工体检 |
+| `close` | 收工沉淀 + 收工体检 + 交接提示（提醒开新对话 + 可粘贴开场白） |
 | `loop` | 开环台账：`--list` / `--done` |
 | `idseq` | ID 单调游标：保证 ID 永不回收 |
 | `export` | 导出 `manifest.json`（机器可读出口） |

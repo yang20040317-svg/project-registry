@@ -1784,6 +1784,49 @@ def render_doctor(doc, idea_days):
     return L
 
 
+def handoff_tip(root, p, name):
+    """收工后的「开新对话」交接提示：一句提醒 + 一段可直接粘贴的开场白。
+
+    为什么要有它：人不敢开新对话，本质是两件事 —— 怕丢上下文、以及不知道新话题
+    第一句该说什么。于是单条会话越拖越长，直到压缩，丢细节 → AI 误解 → 返工 +
+    把背景重讲一遍。把「交接」做成可复制文本，开新对话的成本就降到接近零，
+    长会话也就没有存在的理由了。
+
+    数据全部取自刚被 cmd_context 刷新的 context-packet.md，**不另建文件**：
+    交接卡与上下文包信息高度重合，多一个文件就是多一份会各自漂移的真相。
+    """
+    pkt = _read(p / "memory" / "context-packet.md")
+    m = re.search(r"##\s*6\s*建议起步点\s*\n([\s\S]*?)(?=\n##|\Z)", pkt)
+    first = ""
+    if m:
+        for ln in m.group(1).splitlines():
+            ln = ln.strip()
+            if re.match(r"^\d+\.\s*\S", ln):
+                first = re.sub(r"^\d+\.\s*", "", ln).strip()
+                # 上下文包那行本身以「接上次：」开头，这里再套一层前缀就成了
+                # 「上次收工的起步点：接上次：…」——剥掉，开场白读着才像人话
+                first = re.sub(r"^接上次：\s*", "", first)
+                break
+    loops, _closed = read_open_loops(p)
+    W = 66
+    L = ["", "─" * W,
+         "✅ 这件事收工了 —— 建议开一条新对话再做下一件。",
+         "   原因：本会话的上下文已被这轮工作占住，继续聊只会越来越慢；",
+         "   压缩一旦发生，丢的是细节，代价是返工 + 你得把背景重讲一遍。",
+         "",
+         "   新对话第一句直接粘这一段：",
+         "",
+         f"   接着「{name}」继续做。项目根：{root}",
+         "   先读 .project/memory/context-packet.md（开工第一读）再动手。"]
+    if first:
+        L.append(f"   上次收工的起步点：{first}")
+    if loops:
+        L.append("   待解开环 %d 项，最堵的一条：%s"
+                 % (len(loops), sorted(loops, key=loop_rank)[0]["item"]))
+    L.append("─" * W)
+    return L
+
+
 def cmd_close(a):
     root = a.root or find_root()
     if not root:
@@ -1854,6 +1897,9 @@ def cmd_close(a):
     print("收工三步：① 会话记录 ✅ ② 记得更新动过的资产状态 ③ 上下文包已刷新 ✅")
     if scale == "L":
         print("  （L 档：流水在 memory/log.md，上下文包照样生成，开工第一读照用）")
+    if not getattr(a, "no_tip", False):
+        for ln in handoff_tip(root, p, project_name(p, root)):
+            print(ln)
 
 
 def cmd_export(a):
@@ -4213,6 +4259,8 @@ def main():
     p.add_argument("--title", default="")
     p.add_argument("--no-doctor", dest="no_doctor", action="store_true",
                    help="跳过收工体检（默认跑：构思未落盘 / 构思但其实已落盘 / 位置不存在 / 未登记文件）")
+    p.add_argument("--no-tip", dest="no_tip", action="store_true",
+                   help="跳过收工后的「开新对话」交接提示（默认打印：提醒 + 可粘贴开场白）")
     p.add_argument("--root")
     p.set_defaults(fn=cmd_close)
 
@@ -4261,7 +4309,12 @@ def main():
     p.set_defaults(fn=cmd_quick)
 
     a = ap.parse_args()
-    if a.cmd not in ("init", "diff") and not a.root and not find_root():
+    # quick 也必须放行：它的存在意义就是「当前目录还没有 .project/」时一行起项目，
+    # cmd_quick 内部会先跑 cmd_init。曾漏在这一串里 → 文档承诺的一行入口在没有
+    # .project/ 的目录里直接 exit 1，只有补 --root 才能走通（而 --root 恰恰是它
+    # 想省掉的东西）。e2e 用例因为 `_run` 一律补 --root，正好绕过这道守卫 —
+    # 测试全绿却测不到。裸调用路径由 test_quick_without_root_* 守着。
+    if a.cmd not in ("init", "quick", "diff") and not a.root and not find_root():
         die("当前目录及父级没有 .project/，先跑 init 或用 --root 指定项目根。")
     a.fn(a)
 
