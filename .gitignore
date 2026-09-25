@@ -1,0 +1,24 @@
+# --- 本技能拿自己当项目跑出来的实例数据（不是技能的一部分）---
+# tools: registry.py 以技能目录为项目根时的产物，别进公开仓库
+.project/
+.project.lock
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- 测试产物（pytest 缓存别进公开仓库）---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- 编辑器 / 系统 ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- init --force --reset 的备份 ---
+.project.bak-*
+*.bak
